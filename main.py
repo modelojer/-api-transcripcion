@@ -1,18 +1,27 @@
-from fastapi import FastAPI, UploadFile, File
-import speech_recognition as sr
-import uvicorn
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import requests
+import os
 
-app = FastAPI()
+app = Flask(__name__)
+CORS(app)  # permite solicitudes desde React Native
 
-@app.post("/transcribir/")
-async def transcribir_audio(file: UploadFile = File(...)):
-    recognizer = sr.Recognizer()
-    with open("temp_audio.wav", "wb") as f:
-        f.write(await file.read())
-    with sr.AudioFile("temp_audio.wav") as source:
-        audio = recognizer.record(source)
-    try:
-        texto = recognizer.recognize_google(audio, language="es-ES")
-        return {"texto": texto}
-    except Exception as e:
-        return {"error": str(e)}
+# Lee la clave desde una variable de entorno en Render
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+
+@app.route('/transcribe', methods=['POST'])
+def transcribe():
+    file = request.files['file']
+    
+    response = requests.post(
+        'https://api.openai.com/v1/audio/transcriptions',
+        headers={
+            'Authorization': f'Bearer {OPENAI_API_KEY}'
+        },
+        files={
+            'file': (file.filename, file.stream, file.content_type),
+            'model': (None, 'whisper-1')
+        }
+    )
+
+    return jsonify(response.json())
