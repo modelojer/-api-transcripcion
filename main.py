@@ -11,17 +11,20 @@ OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
-    file = request.files['file']
-    
-    response = requests.post(
-        'https://api.openai.com/v1/audio/transcriptions',
-        headers={
-            'Authorization': f'Bearer {OPENAI_API_KEY}'
-        },
-        files={
-            'file': (file.filename, file.stream, file.content_type),
-            'model': (None, 'whisper-1')
-        }
-    )
-
-    return jsonify(response.json())
+    try:
+        file = request.files['file']
+        
+        response = requests.post(
+            'https://api.openai.com/v1/audio/transcriptions',
+            headers={
+                'Authorization': f'Bearer {OPENAI_API_KEY}'
+            },
+            files={
+                'file': (file.filename, file.stream, file.content_type),
+                'model': (None, 'whisper-1')
+            }
+        )
+        
+        return jsonify(response.json()), response.status_code
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
